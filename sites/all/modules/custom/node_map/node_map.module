@@ -1,0 +1,23 @@
+<?php
+
+function node_map_node_insert($node)
+{
+  print_r($node);
+  die;
+  $new_node=array();
+  //$new_node=$node;
+  $field_name=array('title','body');
+  $nam=array();
+  foreach($field_name as $values)
+  {
+    //print_r($node->$values);
+    $nam[$values]=$node->$values;
+    if(isset( $node->values))
+    {
+      
+    }
+  }
+  print("hiii");
+  print_r($nam);
+  die;
+}
