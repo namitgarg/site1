@@ -1,176 +1,148 @@
 <?php
 
-function image_map($field_value)
-{
-  foreach($field_value['und'] as $keys =>$values)
-  {
-    //$path['filename']=file_create_url($values['uri']).$values['filename'];
-    //print_r($values->filename);
-    $path="namit";
+function image_map($field_value) {
+  $path = "abc";
+  if (!empty($field_value['und'])) {
+    foreach ($field_value['und'] as $keys => $values) {
+      //$path['filename']=file_create_url($values['uri']).$values['filename'];
+      //print_r($values->filename);
+      $path = "namit";
+    }
   }
-  return($path);
-  
-  }
-function textfield_map($field_value)
-{
-return($field_value);
-}
-function title_map($field_value)
-{
-return($field_value);
 
+  return($path);
 }
-function textarea_map($field_value)
-{
+
+function textfield_map($field_value) {
   return($field_value);
 }
-function node_map_node_insert($node)
-{
-  $new_node=array();
+
+function title_map($field_value) {
+  return($field_value);
+}
+
+function textarea_map($field_value) {
+  return($field_value);
+}
+
+function node_map_node_insert($node) {
+  $logdata = node_map_connect();
+//$output = node_map_post_data($logdata);
+
+  $new_node = array();
   $field_name['title']['alternate_name'] = 'title';
   $field_name['title']['type'] = 'title';
   $field_name['title']['value'] = $node->title;
-  
+
   $field_name['body']['alternate_name'] = 'body';
-  $field_name['body']['type'] = 'textarea'; 
+  $field_name['body']['type'] = 'textarea';
   $field_name['body']['value'] = $node->body;
-  
+
   $field_name['field_tags1']['alternate_name'] = 'field_tagline';
   $field_name['field_tags1']['type'] = 'textfield';
   $field_name['field_tags1']['value'] = $node->field_tags1;
-    
-  
-  $field_name['field_staff_image']['alternate_name']='field_image1';
-  $field_name['field_staff_image']['type']='image';
+
+
+  $field_name['field_staff_image']['alternate_name'] = 'field_image1';
+  $field_name['field_staff_image']['type'] = 'image';
   //$field_name['field_staff_image']['value'] = $path=file_create_url($node->field_staff_image['und'][0]['uri']);
-  $field_name['field_staff_image']['value'] = $node->field_staff_image;  
+  $field_name['field_staff_image']['value'] = $node->field_staff_image;
   $field_name['body1']['alternate_name'] = 'body';
   $field_name['body1']['type'] = 'textarea';
   $field_name['body1']['value'] = $node->field_tags1;
+  foreach ($node as $keys => $values) {
 
-  foreach($node as $keys=>$values)
-  {
-    
-    print_r($keys);
-    print_r($values);
-    foreach( $field_name as $keys1=>$values2)
-    {
-      
-    }
-    if(in_array($keys, $new_node))
-      //print_r($field_name[$keys]['type']);
-    //$nam[$values]=$node->$values;
-      drupal_set_message('<pre>'. print_r($node->$keys, true) .'</pre>');  
-    if(!empty( $node->$keys))
-    {
-    switch($field_name[$keys]['type'])
-    {
-      case 'textfield' :
-        $node_data[$field_name[$keys]['alternate_name']]=textfield_map($field_name[$keys]['value']);
-        break;
-      case 'image' :
-        $node_data[$field_name[$keys]['alternate_name']]=image_map($field_name[$keys]['value']);
-        break;
-      case 'title' : 
-        $node_data[$field_name[$keys]['alternate_name']]=title_map($field_name[$keys]['value']);
-        break;
-      case 'textarea' :
-        textarea_map($field_name[$keys]['value']);
-        break;
-      default :
-        print("nd");
-        break;
-    }      
-    //$node_data[$keys]=$values;
+    foreach ($field_name as $keys => $values) {
+      //if (!empty($node->$keys)) {
+        switch ($field_name[$keys]['type']) {
+          case 'textfield' :
+            $node_data[$field_name[$keys]['alternate_name']] = textfield_map($field_name[$keys]['value']);
+            break;
+          case 'image' :
+            $node_data[$field_name[$keys]['alternate_name']] = image_map($field_name[$keys]['value']);
+            break;
+          case 'title' :
+            $node_data[$field_name[$keys]['alternate_name']] = title_map($field_name[$keys]['value']);
+            break;
+          case 'textarea' :
+            $node_data[$field_name[$keys]['alternate_name']] = textarea_map($field_name[$keys]['value']);
+            break;
+          default :
+            print("nd");
+            break;
+        }
+     
+        
+      //}
     }
   }
-  die;
+  $logged_user = $logdata;
+        //
+        $request_url = 'http://localhost/site2/nodeapi/create_node';
+        // Node data
+        $node_data = http_build_query($node_data);
+        // Define cookie session
+       
+        $cookie_session = $logged_user->session_name . '=' . $logged_user->sessid;
+        // cURL
+        $curl = curl_init($request_url);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/json', 'X-CSRF-Token: ' . $logged_user->token)); // Accept JSON response
+        curl_setopt($curl, CURLOPT_POST, 1); // Do a regular HTTP POST
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $node_data); // Set POST data
+        curl_setopt($curl, CURLOPT_HEADER, FALSE);  // Ask to not return Header
+        curl_setopt($curl, CURLOPT_COOKIE, "$cookie_session"); // use the previously saved session
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($curl, CURLOPT_FAILONERROR, TRUE);
+        $response = curl_exec($curl);
+        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        // Check if login was successful
+        if ($http_code == 200) {
+          // Convert json response as array
+          $node = json_decode($response);
+          //print_r($node);
+          return $node;
+          //die;
+        }
+        else {
+          // Get error msg
+          $http_message = curl_error($curl);
+         // print($http_message);
+          return $http_message;
+          //die;
+        }
+}
 
-/*
-  foreach($field_name as $keys=>$values)
-  {
-      //print_r($field_name[$keys]['type']);
-    //$nam[$values]=$node->$values;
-      drupal_set_message('<pre>'. print_r($node->$keys, true) .'</pre>');  
-    if(!empty( $node->$keys))
-    {
-    switch($field_name[$keys]['type'])
-    {
-      case 'textfield' :
-        $node_data[$field_name[$keys]['alternate_name']]=textfield_map($field_name[$keys]['value']);
-        break;
-      case 'image' :
-        $node_data[$field_name[$keys]['alternate_name']]=image_map($field_name[$keys]['value']);
-        break;
-      case 'title' : 
-        $node_data[$field_name[$keys]['alternate_name']]=title_map($field_name[$keys]['value']);
-        break;
-      case 'textarea' :
-        textarea_map($field_name[$keys]['value']);
-        break;
-      default :
-        print("nd");
-        break;
-    }      
-    //$node_data[$keys]=$values;
-    }
-  }
-  */
-  drupal_set_message('<pre>'. print_r($node_data, true) .'</pre>');  
-
-  // web serive  calling code starts
-    $request_url = 'http://localhost/site2/user/login';
-     $user_data = array(
-    'username' => 'kellton',
-    'password' => 'password123',
+function node_map_connect() {
+  $myfile = fopen("D://testfile.txt", "w");
+  $request_url = 'http://localhost/site2/nodeapi/user/login';
+  $username = 'garg';
+  $password = 'password123';
+  $user_data = array(
+    'username' => $username,
+    'password' => $password,
   );
- $user_data = http_build_query($user_data);
- $curl = curl_init($request_url);
+  $user_data = http_build_query($user_data);
+
+  $curl = curl_init($request_url);
   curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/json')); // Accept JSON response
   curl_setopt($curl, CURLOPT_POST, 1); // Do a regular HTTP POST
   curl_setopt($curl, CURLOPT_POSTFIELDS, $user_data); // Set POST data
   curl_setopt($curl, CURLOPT_HEADER, FALSE);  // Ask to not return Header
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
   curl_setopt($curl, CURLOPT_FAILONERROR, TRUE);
+  curl_setopt($curl, CURLOPT_COOKIESESSION, true);
+  //curl_setopt($curl, CURLOPT_COOKIEFILE, "cookie.txt");
+  //curl_setopt($curl, CURLOPT_COOKIEJAR, "cookie.txt");
 
   $response = curl_exec($curl);
   $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-  // Check if login was successful
   if ($http_code == 200) {
-    // Convert json response as array
     $logged_user = json_decode($response);
+    return $logged_user;
   }
   else {
-    // Get error msg
     $http_message = curl_error($curl);
-    die($http_message);
+    return $http_message;
   }
-  
-  $final_node_data=http_build_query($node_data);
-  $request_url = 'http://localhost/site2/nodeapi/create_node';
-    // Define cookie session
-  //$cookie_session = $logged_user->session_name . '=' . $logged_user->sessid;
-  // cURL
-  $curl = curl_init($request_url);
-  curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/json')); // Accept JSON response
-  curl_setopt($curl, CURLOPT_POST, 1); // Do a regular HTTP POST
-  curl_setopt($curl, CURLOPT_POSTFIELDS, $final_node_data); // Set POST data
-  curl_setopt($curl, CURLOPT_HEADER, FALSE);  // Ask to not return Header
-  //curl_setopt($curl, CURLOPT_COOKIE, "$cookie_session"); // use the previously saved session
-  curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
-  curl_setopt($curl, CURLOPT_FAILONERROR, TRUE);
-  $response = curl_exec($curl);
-  
-  $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-  // Check if login was successful
-  if ($http_code == 200) {
-    // Convert json response as array
-    $node = json_decode($response);
-  }
-  else {
-    // Get error msg
-    $http_message = curl_error($curl);
-    die($http_message);
-  }
-
+  curl_close($curl);
 }
